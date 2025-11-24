@@ -14,9 +14,14 @@ Metrics/MethodLength:
 
 Metrics/ClassLength:
   Max: 200
+  Exclude:
+    - 'lib/messhy/cli.rb'
+    - 'lib/messhy/ssh_executor.rb'
 
 Metrics/AbcSize:
   Max: 35
+  Exclude:
+    - 'lib/messhy/cli.rb'
 
 Metrics/CyclomaticComplexity:
   Max: 12

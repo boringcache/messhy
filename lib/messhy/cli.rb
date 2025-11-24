@@ -177,23 +177,23 @@ module Messhy
 
       puts '🔧 How to fix this:'
       puts
-      puts "  1. Update all host keys automatically (recommended):"
+      puts '  1. Update all host keys automatically (recommended):'
       puts "     #{environment_prefix(config)}messhy trust-hosts --force"
       puts
-      puts "  2. Or manually remove just the problematic host:"
+      puts '  2. Or manually remove just the problematic host:'
       if host_ip
         puts "     ssh-keygen -R #{host_ip}"
       else
         puts '     ssh-keygen -R <host_ip>'
       end
       puts
-      puts "  3. Then retry the setup:"
+      puts '  3. Then retry the setup:'
       puts "     #{environment_prefix(config)}messhy setup"
       puts
       puts '=' * 60
     end
 
-    def handle_authentication_error(error_msg, config)
+    def handle_authentication_error(_error_msg, config)
       puts "\n❌ SSH Authentication Failed"
       puts '=' * 60
       puts
@@ -221,7 +221,7 @@ module Messhy
       puts '=' * 60
     end
 
-    def handle_connection_error(error_msg, config)
+    def handle_connection_error(error_msg, _config)
       puts "\n❌ SSH Connection Failed"
       puts '=' * 60
       puts

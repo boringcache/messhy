@@ -56,7 +56,7 @@ class ConfigurationTest < Minitest::Test
     }
     config = Messhy::Configuration.new(config_hash, 'test')
 
-    assert_equal ['alpha', 'beta'], config.node_names
+    assert_equal %w[alpha beta], config.node_names
   end
 
   def test_node_config
@@ -86,7 +86,7 @@ class ConfigurationTest < Minitest::Test
     assert_equal 16, config.network_prefix_length
   end
 
-  def test_network_prefix_length_defaults_to_24
+  def test_network_prefix_length_defaults_to_twenty_four
     config_hash = {
       'test' => {
         'network' => '10.10.0.0',

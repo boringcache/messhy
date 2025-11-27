@@ -6,7 +6,8 @@ if defined?(Rails::Railtie)
       railtie_name :messhy
 
       rake_tasks do
-        load 'tasks/messhy.rake'
+        path = File.expand_path('../tasks/messhy.rake', __dir__)
+        load path if File.exist?(path)
       end
 
       generators do

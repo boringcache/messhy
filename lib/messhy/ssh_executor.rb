@@ -172,6 +172,19 @@ module Messhy
       false
     end
 
+    def measure_latency(source_node, target_ip)
+      latency = nil
+      execute_on_node(source_node) do
+        output = capture(:ping, '-c', '3', '-W', '2', '-I', 'wg0', target_ip, raise_on_non_zero_exit: false)
+        if output =~ %r{rtt min/avg/max/mdev = [\d.]+/([\d.]+)/}
+          latency = ::Regexp.last_match(1).to_f
+        end
+      end
+      latency
+    rescue StandardError
+      nil
+    end
+
     def test_tcp_connectivity(source_node, target_ip, port = 22)
       success = false
       execute_on_node(source_node) do

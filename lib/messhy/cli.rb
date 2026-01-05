@@ -45,11 +45,6 @@ module Messhy
       handle_ssh_error(e, config)
     end
 
-    desc 'health', 'Alias for status'
-    def health
-      status
-    end
-
     desc 'ping NODE', 'Ping a specific node'
     def ping(node)
       config = load_config

@@ -9,11 +9,6 @@ namespace :messhy do
     system('bundle exec messhy setup')
   end
 
-  desc 'Check VPN mesh connectivity'
-  task :health do
-    system('bundle exec messhy health')
-  end
-
   desc 'Generate new WireGuard keys'
   task :keygen do
     system('bundle exec messhy keygen')

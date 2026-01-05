@@ -25,6 +25,8 @@ module Messhy
         show_node_status(node_name)
         puts
       end
+
+      show_latency_matrix
     end
 
     def show_node_status(node_name)
@@ -156,6 +158,51 @@ module Messhy
     end
 
     private
+
+    def show_latency_matrix
+      node_names = config.node_names
+      return if node_names.size < 2
+
+      puts '==> Latency Matrix (ms)'
+      puts
+
+      latencies = {}
+      tested_pairs = Set.new
+
+      node_names.each do |source|
+        node_names.each do |target|
+          next if source == target
+
+          pair_key = [source, target].sort.join('-')
+          next if tested_pairs.include?(pair_key)
+
+          tested_pairs.add(pair_key)
+          target_ip = config.node_config(target)['private_ip']
+          latency = @ssh_executor.measure_latency(source, target_ip)
+          latencies[[source, target]] = latency
+          latencies[[target, source]] = latency
+        end
+      end
+
+      max_name_len = node_names.map(&:length).max
+      header = ' ' * (max_name_len + 2) + node_names.map { |n| n[0..7].rjust(8) }.join(' ')
+      puts header
+      puts '-' * header.length
+
+      node_names.each do |source|
+        row = node_names.map do |target|
+          if source == target
+            '    -   '
+          else
+            lat = latencies[[source, target]]
+            lat ? format('%7.1f ', lat) : '   N/A  '
+          end
+        end
+        puts "#{source.ljust(max_name_len)}  #{row.join(' ')}"
+      end
+
+      puts
+    end
 
     def handshake_recent?(source_name, target_ip, status_cache)
       status = status_cache[source_name] ||= @ssh_executor.get_wireguard_status(source_name)

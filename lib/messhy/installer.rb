@@ -57,6 +57,11 @@ module Messhy
       puts "\n==> Verifying mesh connectivity..."
       verify_mesh(skip: skip)
 
+      if config.dns_enabled?
+        puts "\n==> Setting up mesh DNS..."
+        DnsManager.new(config, ssh_executor: ssh_executor, dry_run: dry_run, skip: skip).setup
+      end
+
       puts "\n✓ WireGuard mesh setup complete!"
     end
 

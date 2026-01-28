@@ -72,6 +72,42 @@ messhy setup --environment=production
 messhy status
 ```
 
+When mesh DNS is enabled, `messhy status` also prints DNS server health and record counts.
+
+## Mesh DNS (optional)
+
+Messhy can set up a lightweight internal DNS (dnsmasq) for the mesh so you can
+use stable hostnames instead of raw IPs. It installs dnsmasq on designated nodes
+and configures all mesh nodes to resolve a private domain over `wg0`.
+
+Example config:
+
+```yaml
+production:
+  <<: *shared
+  dns:
+    enabled: true
+    provider: dnsmasq
+    domain: mesh.internal
+    interface: wg0
+    servers:
+      - app-us-1
+      - app-eu-1
+    auto_records: true
+    records:
+      db-primary.mesh.internal:
+        - db-primary
+        - db-standby-1
+      db-replica.mesh.internal:
+        - db-standby-1
+```
+
+Apply DNS without touching WireGuard:
+
+```bash
+messhy dns --environment=production
+```
+
 ## Secret Management
 
 `messhy setup` stores generated WireGuard key pairs inside `.secrets/wireguard/*.yml` with `0600` permissions. Each node gets its own YAML file (`.secrets/wireguard/<node>.yml`) and all peer pre‑shared keys live in `.secrets/wireguard/psks.yml`. The directory is gitignored by default, and the Rails generator ensures the ignore rules are present in your application. After provisioning, copy the YAML files into 1Password (or another vault) and remove them from disk if you do not want long‑lived local copies.
@@ -187,6 +223,22 @@ See `config/mesh.example.yml` for a complete example.
 - `mtu`: MTU size (default: `1280` for reliability)
 - `listen_port`: WireGuard port (default: `51820`)
 - `keepalive`: Keepalive interval in seconds (default: `25`)
+- `dns`: Optional mesh DNS configuration (see below)
+
+### DNS Options
+
+When `dns.enabled: true`, messhy installs dnsmasq on the specified `dns.servers`
+and configures all mesh nodes to resolve the `dns.domain` over the WireGuard
+interface.
+
+- `dns.enabled`: Enable mesh DNS
+- `dns.provider`: `dnsmasq` (only provider today)
+- `dns.domain`: Internal DNS domain (default: `mesh`)
+- `dns.interface`: WireGuard interface (default: `wg0`)
+- `dns.servers`: Node names that will run dnsmasq
+- `dns.auto_records`: Auto-create `<node>.<domain>` for every node (default: `true`)
+- `dns.records`: Extra records (values can be IPs or node names)
+- `dns.ttl`: Local DNS TTL seconds (default: `30`)
 
 ### Node Configuration
 

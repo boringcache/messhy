@@ -26,6 +26,16 @@ module Messhy
       handle_ssh_error(e, config)
     end
 
+    desc 'dns', 'Setup mesh DNS (dnsmasq)'
+    option :dry_run, type: :boolean, default: false
+    option :skip_node, type: :string
+    def dns
+      config = load_config
+      DnsManager.new(config, dry_run: options[:dry_run], skip: options[:skip_node]).setup
+    rescue SSHKit::Runner::ExecuteError => e
+      handle_ssh_error(e, config)
+    end
+
     desc 'keygen', 'Generate WireGuard keys without deploying configs'
     option :skip_node, type: :string
     def keygen

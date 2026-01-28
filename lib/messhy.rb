@@ -8,6 +8,7 @@ require_relative 'messhy/mesh_builder'
 require_relative 'messhy/ssh_executor'
 require_relative 'messhy/health_checker'
 require_relative 'messhy/host_trust_manager'
+require_relative 'messhy/dns_manager'
 require_relative 'messhy/cli'
 
 module Messhy

@@ -7,6 +7,7 @@ module Messhy
     attr_reader :environment,
                 :network,
                 :nodes,
+                :dns,
                 :user,
                 :ssh_key,
                 :mtu,
@@ -20,6 +21,7 @@ module Messhy
 
       @network = env_config['network'] || '10.8.0.0/24'
       @nodes = env_config['nodes'] || {}
+      @dns = env_config['dns'] || {}
       @user = env_config['user'] || 'ubuntu'
       @ssh_key = File.expand_path(env_config['ssh_key'] || '~/.ssh/id_rsa')
       @mtu = env_config['mtu'] || 1280
@@ -68,6 +70,16 @@ module Messhy
         raise Error, "Node #{name} missing 'private_ip'" unless config['private_ip']
       end
 
+      if dns_enabled?
+        raise Error, 'DNS domain is required when dns is enabled' if dns_domain.to_s.strip.empty?
+        raise Error, 'DNS servers are required when dns is enabled' if dns_server_nodes.empty?
+        raise Error, "Unsupported DNS provider: #{dns_provider}" unless %w[dnsmasq].include?(dns_provider)
+
+        dns_server_nodes.each do |name|
+          raise Error, "DNS server node not found: #{name}" unless node_config(name)
+        end
+      end
+
       true
     end
 
@@ -82,6 +94,46 @@ module Messhy
       else
         :always
       end
+    end
+
+    def dns_enabled?
+      return false if @dns.nil? || @dns.empty?
+
+      @dns.key?('enabled') ? @dns['enabled'] == true : true
+    end
+
+    def dns_provider
+      value = @dns['provider'] || 'dnsmasq'
+      value.to_s.strip
+    end
+
+    def dns_domain
+      value = @dns['domain'] || 'mesh'
+      value.to_s.strip
+    end
+
+    def dns_interface
+      value = @dns['interface'] || 'wg0'
+      value.to_s.strip
+    end
+
+    def dns_ttl
+      value = @dns['ttl'] || 30
+      value.to_i
+    end
+
+    def dns_server_nodes
+      Array(@dns['servers']).map(&:to_s).reject(&:empty?)
+    end
+
+    def dns_records
+      @dns['records'] || {}
+    end
+
+    def dns_auto_records?
+      return true unless @dns.key?('auto_records')
+
+      @dns['auto_records'] == true
     end
   end
 end

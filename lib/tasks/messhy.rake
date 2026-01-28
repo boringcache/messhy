@@ -24,4 +24,9 @@ namespace :messhy do
   task :trust_hosts do
     system('bundle exec messhy trust-hosts')
   end
+
+  desc 'Setup mesh DNS (dnsmasq)'
+  task :dns do
+    system('bundle exec messhy dns')
+  end
 end

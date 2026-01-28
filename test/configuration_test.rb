@@ -18,6 +18,7 @@ class ConfigurationTest < Minitest::Test
     assert_equal 51_820, config.listen_port
     assert_equal 25, config.keepalive
     assert_equal true, config.verify_host_key
+    refute config.dns_enabled?
   end
 
   def test_initialization_with_custom_values
@@ -43,6 +44,80 @@ class ConfigurationTest < Minitest::Test
     assert_equal 55_555, config.listen_port
     assert_equal 30, config.keepalive
     assert_equal false, config.verify_host_key
+  end
+
+  def test_dns_defaults
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    refute config.dns_enabled?
+    assert_equal 'dnsmasq', config.dns_provider
+    assert_equal 'mesh', config.dns_domain
+    assert_equal 'wg0', config.dns_interface
+    assert_equal 30, config.dns_ttl
+    assert config.dns_auto_records?
+    assert_equal({}, config.dns_records)
+  end
+
+  def test_dns_validation_requires_servers
+    config_hash = {
+      'test' => {
+        'dns' => {
+          'enabled' => true,
+          'domain' => 'mesh.internal'
+        },
+        'nodes' => {
+          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+    assert_match(/DNS servers are required/, error.message)
+  end
+
+  def test_dns_validation_requires_domain
+    config_hash = {
+      'test' => {
+        'dns' => {
+          'enabled' => true,
+          'servers' => ['node1']
+        },
+        'nodes' => {
+          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+    assert_match(/DNS domain is required/, error.message)
+  end
+
+  def test_dns_validation_requires_valid_server_nodes
+    config_hash = {
+      'test' => {
+        'dns' => {
+          'enabled' => true,
+          'domain' => 'mesh.internal',
+          'servers' => ['missing-node']
+        },
+        'nodes' => {
+          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+    assert_match(/DNS server node not found/, error.message)
   end
 
   def test_node_names

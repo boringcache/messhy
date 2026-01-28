@@ -26,11 +26,15 @@ module Messhy
         puts
       end
 
+      show_dns_status if config.dns_enabled?
+
       show_latency_matrix
     end
 
     def show_node_status(node_name)
       node_config = config.node_config(node_name)
+      label = node_config['label']
+      label_display = label.to_s.strip.empty? ? '' : " (#{label})"
 
       begin
         status = @ssh_executor.get_wireguard_status(node_name)
@@ -39,7 +43,7 @@ module Messhy
         peers = status.scan(/peer: (.+?)$/).flatten
 
         if peers.any?
-          puts "✓ #{node_name} (#{node_config['private_ip']}) - connected to #{peers.size} peers"
+          puts "✓ #{node_name} (#{node_config['private_ip']})#{label_display} - connected to #{peers.size} peers"
 
           # Show basic peer info
           status.split('peer:').drop(1).each do |peer_block|
@@ -50,10 +54,10 @@ module Messhy
             puts "  └─ Peer: #{endpoint} - #{stats[:received]} rx, #{stats[:sent]} tx"
           end
         else
-          puts "✗ #{node_name} (#{node_config['private_ip']}) - 0 peers (DOWN)"
+          puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - 0 peers (DOWN)"
         end
       rescue StandardError => e
-        puts "✗ #{node_name} (#{node_config['private_ip']}) - Error: #{e.message}"
+        puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - Error: #{e.message}"
       end
     end
 
@@ -155,6 +159,41 @@ module Messhy
           puts
         end
       end
+    end
+
+    def show_dns_status
+      puts '==> Mesh DNS Status'
+      puts "Domain: #{config.dns_domain}"
+      puts "Servers: #{config.dns_server_nodes.join(', ')}"
+      puts
+
+      config.dns_server_nodes.each do |node_name|
+        node_config = config.node_config(node_name)
+        next unless node_config
+
+        label = node_config['label']
+        label_display = label.to_s.strip.empty? ? '' : " (#{label})"
+
+        begin
+          @ssh_executor.execute_on_node(node_name) do
+            service = capture(:systemctl, 'is-active', 'dnsmasq', raise_on_non_zero_exit: false).strip
+            messhy_records = capture(:bash, '-c',
+                                     "sudo awk 'BEGIN{c=0} /^address=\\//{c++} END{print c}' " \
+                                     "/etc/dnsmasq.d/messhy.conf 2>/dev/null || true").strip
+            ap_records = capture(:bash, '-c',
+                                 "sudo awk 'BEGIN{c=0} /^address=\\//{c++} END{print c}' " \
+                                 "/etc/dnsmasq.d/active_postgres.conf 2>/dev/null || true").strip
+
+            status_icon = service == 'active' ? '✓' : '✗'
+            puts "#{status_icon} #{node_name} (#{node_config['private_ip']})#{label_display} - dnsmasq #{service}"
+            puts "  └─ records: messhy=#{messhy_records.to_i} active_postgres=#{ap_records.to_i}"
+          end
+        rescue StandardError => e
+          puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - DNS check failed: #{e.message}"
+        end
+      end
+
+      puts
     end
 
     private

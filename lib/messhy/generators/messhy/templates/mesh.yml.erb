@@ -12,6 +12,24 @@ shared: &shared
   ssh_key: ~/.ssh/id_rsa
   listen_port: 51820
   verify_host_key: true
+  # Optional mesh DNS (dnsmasq)
+  # dns:
+  #   enabled: true
+  #   provider: dnsmasq
+  #   domain: mesh.internal
+  #   interface: wg0
+  #   servers:
+  #     - app-us-1
+  #     - app-eu-1
+  #   # Auto-generate <node>.mesh.internal records for every node (default: true)
+  #   auto_records: true
+  #   # Extra records (values can be IPs or node names)
+  #   records:
+  #     db-primary.mesh.internal:
+  #       - db-primary
+  #       - db-standby-1
+  #     db-replica.mesh.internal:
+  #       - db-standby-1
 
 development:
   <<: *shared

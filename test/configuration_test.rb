@@ -88,6 +88,7 @@ class ConfigurationTest < Minitest::Test
       'test' => {
         'dns' => {
           'enabled' => true,
+          'domain' => '',
           'servers' => ['node1']
         },
         'nodes' => {

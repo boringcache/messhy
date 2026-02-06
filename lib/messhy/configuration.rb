@@ -71,7 +71,7 @@ module Messhy
       end
 
       if dns_enabled?
-        raise Error, 'DNS domain is required when dns is enabled' if dns_domain.to_s.strip.empty?
+        raise Error, 'DNS domain is required when dns is enabled' if dns_domains.empty?
         raise Error, 'DNS servers are required when dns is enabled' if dns_server_nodes.empty?
         raise Error, "Unsupported DNS provider: #{dns_provider}" unless %w[dnsmasq].include?(dns_provider)
 
@@ -108,8 +108,22 @@ module Messhy
     end
 
     def dns_domain
+      domains = dns_domains
+      return domains.first unless domains.empty?
+
       value = @dns['domain'] || 'mesh'
       value.to_s.strip
+    end
+
+    def dns_domains
+      domains = Array(@dns['domains']).map(&:to_s).map(&:strip).reject(&:empty?)
+      return domains unless domains.empty?
+
+      value = @dns['domain']
+      return [] if value.nil?
+
+      value = value.to_s.strip
+      value.empty? ? [] : [value]
     end
 
     def dns_interface

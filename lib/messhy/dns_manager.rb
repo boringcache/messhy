@@ -148,7 +148,7 @@ module Messhy
       lines << 'cache-size=1000'
       lines << "local-ttl=#{ttl}"
       lines << "interface=#{interface}"
-      lines << 'bind-interfaces'
+      lines << 'bind-dynamic'
       lines << 'listen-address=127.0.0.1'
       lines << "listen-address=#{server_ip}"
       lines << ''

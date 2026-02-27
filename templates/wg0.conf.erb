@@ -14,7 +14,7 @@ PostUp = resolvectl dns <%= dns_interface %> <%= dns_server_ips.join(' ') %>
 PostUp = resolvectl domain <%= dns_interface %> ~<%= dns_domain %>
 <% end -%>
 <% if is_dns_server -%>
-PostUp = systemctl restart dnsmasq || true
+PostUp = sleep 1 && systemctl restart dnsmasq || true
 <% end -%>
 PostDown = sysctl -w net.ipv4.ip_forward=0
 

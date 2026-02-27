@@ -31,6 +31,20 @@ module Messhy
       listen_port = node_config['listen_port'] || config.listen_port
       mtu = config.mtu
 
+      # DNS config for PostUp persistence
+      dns_server_ips = []
+      dns_domain = nil
+      dns_interface = nil
+      if config.dns_enabled?
+        dns_domain = config.dns_domain
+        dns_interface = config.dns_interface
+        dns_server_ips = config.dns_server_nodes.filter_map { |name|
+          config.node_config(name)&.dig('private_ip')
+        }
+      end
+
+      is_dns_server = config.dns_enabled? && config.dns_server_nodes.include?(node_name)
+
       # Build peers list (all other nodes)
       peers = []
       config.each_node do |peer_name, peer_config|

@@ -9,6 +9,13 @@ MTU = <%= mtu %>
 
 # Enable IP forwarding
 PostUp = sysctl -w net.ipv4.ip_forward=1
+<% if dns_server_ips && !dns_server_ips.empty? -%>
+PostUp = resolvectl dns <%= dns_interface %> <%= dns_server_ips.join(' ') %>
+PostUp = resolvectl domain <%= dns_interface %> ~<%= dns_domain %>
+<% end -%>
+<% if is_dns_server -%>
+PostUp = systemctl restart dnsmasq || true
+<% end -%>
 PostDown = sysctl -w net.ipv4.ip_forward=0
 
 <% peers.each do |peer| %>

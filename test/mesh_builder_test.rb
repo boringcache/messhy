@@ -150,7 +150,7 @@ class MeshBuilderTest < Minitest::Test
     builder = Messhy::MeshBuilder.new(config, node_keys, psk_map)
     wg_config = builder.build_config_for_node('dns-server')
 
-    assert_includes wg_config, 'PostUp = systemctl restart dnsmasq || true'
+    assert_includes wg_config, 'PostUp = sleep 1 && systemctl restart dnsmasq || true'
   end
 
   def test_build_config_omits_dnsmasq_restart_for_non_dns_node

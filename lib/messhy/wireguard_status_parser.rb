@@ -20,18 +20,23 @@ module Messhy
     def parse_handshake_seconds(desc)
       return nil if desc.strip.casecmp('(none)').zero?
 
-      matches = desc.scan(/(\d+)\s+(second|minute|hour|day)s?/i)
-      return nil if matches.empty?
+      total = 0
+      words = desc.downcase.delete(',').split
 
-      matches.sum do |value, unit|
-        TIME_UNITS_IN_SECONDS[unit.downcase] * value.to_i
+      words.each_cons(2) do |value, unit|
+        unit = unit.delete_suffix('s')
+        next unless integer_token?(value) && TIME_UNITS_IN_SECONDS.key?(unit)
+
+        total += TIME_UNITS_IN_SECONDS.fetch(unit) * value.to_i
       end
+
+      total.positive? ? total : nil
     end
 
     def extract_handshake_time(peer_block)
       return nil unless peer_block
 
-      desc = peer_block[/latest handshake:\s*(.+)/, 1]
+      desc = line_value(peer_block, 'latest handshake: ')
       return nil unless desc&.include?('ago')
 
       parse_handshake_seconds(desc)
@@ -55,6 +60,10 @@ module Messhy
 
     def line_value(block, prefix)
       block.each_line(chomp: true).find { |line| line.start_with?(prefix) }&.delete_prefix(prefix)
+    end
+
+    def integer_token?(value)
+      !value.empty? && value.each_char.all? { |char| char >= '0' && char <= '9' }
     end
   end
 end

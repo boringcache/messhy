@@ -38,17 +38,23 @@ module Messhy
     end
 
     def extract_transfer_stats(peer_block)
-      rx = peer_block.match(/transfer: (.+?) received/)&.[](1) || '0 B'
-      tx = peer_block.match(/received, (.+?) sent/)&.[](1) || '0 B'
-      { received: rx, sent: tx }
+      transfer = line_value(peer_block, 'transfer: ')
+      rx, tx = transfer ? transfer.split(' received, ', 2) : nil
+      tx = tx&.delete_suffix(' sent')
+
+      { received: rx || '0 B', sent: tx || '0 B' }
     end
 
     def extract_endpoint(peer_block)
-      peer_block[/endpoint: (.+?)$/, 1]
+      line_value(peer_block, 'endpoint: ')
     end
 
     def extract_allowed_ips(peer_block)
-      peer_block[/allowed ips: (.+?)$/, 1]
+      line_value(peer_block, 'allowed ips: ')
+    end
+
+    def line_value(block, prefix)
+      block.each_line(chomp: true).find { |line| line.start_with?(prefix) }&.delete_prefix(prefix)
     end
   end
 end

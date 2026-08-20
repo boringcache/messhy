@@ -44,7 +44,7 @@ module Messhy
 
     def extract_transfer_stats(peer_block)
       transfer = line_value(peer_block, 'transfer: ')
-      rx, tx = transfer ? transfer.split(' received, ', 2) : nil
+      rx, tx = transfer&.split(' received, ', 2)
       tx = tx&.delete_suffix(' sent')
 
       { received: rx || '0 B', sent: tx || '0 B' }
@@ -63,7 +63,7 @@ module Messhy
     end
 
     def integer_token?(value)
-      !value.empty? && value.each_char.all? { |char| char >= '0' && char <= '9' }
+      !value.empty? && value.each_char.all? { |char| char.between?('0', '9') }
     end
   end
 end

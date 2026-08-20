@@ -5,29 +5,25 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby-version: ['3.4']
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: ${{ matrix.ruby-version }}
+        ruby-version: '4.0.6'
         bundler-cache: true
-
-    - name: Install dependencies
-      run: bundle install
 
     - name: Run tests
       run: bundle exec rake test
@@ -35,21 +31,8 @@ jobs:
     - name: Run RuboCop
       run: bundle exec rubocop
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
+    - name: Audit dependencies
+      run: bundle exec bundle-audit check --update
 
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.4'
-        bundler-cache: true
-
-    - name: Install dependencies
-      run: bundle install
-
-    - name: Check Ruby syntax
-      run: |
-        find lib -name "*.rb" -exec ruby -c {} \;
-        find test -name "*.rb" -exec ruby -c {} \;
+    - name: Build gem
+      run: gem build messhy.gemspec

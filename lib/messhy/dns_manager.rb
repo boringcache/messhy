@@ -79,7 +79,7 @@ module Messhy
           execute :sudo, 'resolvectl', 'flush-caches', raise_on_error: false
         elsif test('[ -d /etc/resolvconf/resolv.conf.d ]', raise_on_error: false)
           head_path = '/etc/resolvconf/resolv.conf.d/head'
-          content = server_ips.map { |ip| "nameserver #{ip}" }.join("\n") + "\n"
+          content = "#{server_ips.map { |ip| "nameserver #{ip}" }.join("\n")}\n"
           upload! StringIO.new(content), '/tmp/messhy-resolv.conf'
           execute :sudo, 'mv', '/tmp/messhy-resolv.conf', head_path
           execute :sudo, 'chmod', '644', head_path
@@ -112,7 +112,7 @@ module Messhy
         end
       end
 
-      records.transform_values { |ips| ips.uniq }
+      records.transform_values(&:uniq)
     end
 
     def resolve_target(target)
@@ -159,7 +159,7 @@ module Messhy
         end
       end
 
-      lines.join("\n") + "\n"
+      "#{lines.join("\n")}\n"
     end
   end
 end

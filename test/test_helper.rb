@@ -1,8 +1,8 @@
 require 'simplecov'
 SimpleCov.start do
-  add_filter '/test/'
-  add_filter '/vendor/'
-  add_group 'Core', 'lib/messhy'
+  skip '/test/'
+  skip '/vendor/'
+  group 'Core', 'lib/messhy'
 end
 
 begin

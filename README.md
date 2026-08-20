@@ -6,21 +6,10 @@ A Ruby gem that sets up a full WireGuard VPN mesh across any VMs. Every node con
 
 ## Why messhy?
 
-### Problems It Solves
-
-❌ **Without messhy:**
-- Database replication over public IPs (insecure)
-- Complex VPN configurations
-- NAT traversal issues
-- Manual key management
-- Cloud-specific networking (VPC, subnet, security groups)
-
-✅ **With messhy:**
-- Secure encrypted connections (WireGuard)
-- Automatic key generation and distribution
-- Works across any cloud/datacenter
-- Zero application changes (just use 10.8.0.x IPs)
-- Simple configuration
+Messhy generates WireGuard keys and peer configuration, installs it over SSH,
+and gives each node a stable private address. It is intended for small fleets
+whose operators control every host and can explicitly allow WireGuard traffic
+between peers.
 
 ## Installation
 
@@ -285,17 +274,25 @@ iptables -A INPUT -p udp --dport 51820 -j ACCEPT
 - Optimal routing (direct connections)
 - Scales to ~50 nodes
 
-## Performance
+## Capacity and performance
 
-### Benchmarks (compared to no VPN)
+A full mesh creates one peer relationship between every pair of nodes, so the
+configuration grows quadratically. Messhy is designed for small fleets (about
+50 nodes or fewer), not large or frequently changing membership. Throughput,
+latency, and CPU overhead depend on the hosts, network path, MTU, and workload;
+benchmark the actual topology before relying on a capacity estimate.
 
-| Metric | No VPN | WireGuard | Overhead |
-|--------|--------|-----------|----------|
-| Throughput | 1000 Mbps | 950 Mbps | 5% |
-| Latency | 10ms | 10.5ms | +0.5ms |
-| CPU usage | 2% | 3% | +1% |
+## Security boundaries
 
-**WireGuard is FAST!** Negligible overhead for most workloads.
+- `trust-hosts` collects host keys with `ssh-keyscan`; verify fingerprints over
+  a separate trusted channel before relying on them.
+- Anyone with a generated node private key can impersonate that node. Store
+  `.secrets/wireguard` in an encrypted vault and rotate keys after suspected
+  disclosure or membership changes.
+- Messhy configures WireGuard, but it does not replace host firewalls, patching,
+  SSH hardening, or application-level authentication.
+- Full-mesh membership grants direct network reachability. Only enroll hosts
+  that should be able to reach one another.
 
 ## Troubleshooting
 
@@ -330,7 +327,7 @@ messhy setup
 
 ## Requirements
 
-- Ruby 3.0+
+- Ruby 4.0+
 - WireGuard tools (`wg` command)
 - Target servers with Linux kernel 5.6+ (WireGuard built-in)
 - SSH key-based authentication
@@ -345,4 +342,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ---
 
-Built with ❤️ for the Rails community by [Gaurav](https://github.com/yourusername)
+Maintained by [BoringCache](https://github.com/boringcache).

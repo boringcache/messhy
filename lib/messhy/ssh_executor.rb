@@ -176,9 +176,7 @@ module Messhy
       latency = nil
       execute_on_node(source_node) do
         output = capture(:ping, '-c', '3', '-W', '2', '-I', 'wg0', target_ip, raise_on_non_zero_exit: false)
-        if output =~ %r{rtt min/avg/max/mdev = [\d.]+/([\d.]+)/}
-          latency = ::Regexp.last_match(1).to_f
-        end
+        latency = ::Regexp.last_match(1).to_f if output =~ %r{rtt min/avg/max/mdev = [\d.]+/([\d.]+)/}
       end
       latency
     rescue StandardError

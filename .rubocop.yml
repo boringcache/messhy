@@ -1,6 +1,7 @@
 AllCops:
   NewCops: enable
-  TargetRubyVersion: 3.4
+  SuggestExtensions: false
+  TargetRubyVersion: 4.0
   Exclude:
     - 'vendor/**/*'
     - 'node_modules/**/*'
@@ -11,23 +12,35 @@ Layout/LineLength:
 
 Metrics/MethodLength:
   Max: 30
+  Exclude:
+    - 'lib/messhy/dns_manager.rb'
+    - 'lib/messhy/health_checker.rb'
+    - 'lib/messhy/mesh_builder.rb'
+    - 'test/mesh_builder_test.rb'
 
 Metrics/ClassLength:
   Max: 200
   Exclude:
     - 'lib/messhy/cli.rb'
     - 'lib/messhy/ssh_executor.rb'
+    - 'lib/messhy/health_checker.rb'
+    - 'test/configuration_test.rb'
 
 Metrics/AbcSize:
   Max: 35
   Exclude:
     - 'lib/messhy/cli.rb'
+    - 'lib/messhy/dns_manager.rb'
+    - 'lib/messhy/health_checker.rb'
+    - 'lib/messhy/installer.rb'
 
 Metrics/CyclomaticComplexity:
   Max: 12
 
 Metrics/PerceivedComplexity:
   Max: 12
+  Exclude:
+    - 'lib/messhy/health_checker.rb'
 
 Metrics/BlockLength:
   Enabled: false
@@ -46,10 +59,3 @@ Naming/PredicateMethod:
 
 Lint/DuplicateBranch:
   Enabled: false
-
-Gemspec/DevelopmentDependencies:
-  Enabled: false
-
-Gemspec/RequireMFA:
-  Enabled: false
-

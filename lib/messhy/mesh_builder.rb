@@ -38,9 +38,9 @@ module Messhy
       if config.dns_enabled?
         dns_domain = config.dns_domain
         dns_interface = config.dns_interface
-        dns_server_ips = config.dns_server_nodes.filter_map { |name|
+        dns_server_ips = config.dns_server_nodes.filter_map do |name|
           config.node_config(name)&.dig('private_ip')
-        }
+        end
       end
 
       is_dns_server = config.dns_enabled? && config.dns_server_nodes.include?(node_name)

@@ -94,7 +94,6 @@ module Messhy
       end
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     def test_all
       puts '==> Testing mesh connectivity...'
       puts
@@ -148,7 +147,6 @@ module Messhy
       puts 'If a pair still reports a failure, there has been no recent handshake—check UDP 51820 and ' \
            'keepalive/route settings.'
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
     def show_stats(node: nil)
       if node
@@ -179,10 +177,10 @@ module Messhy
             service = capture(:systemctl, 'is-active', 'dnsmasq', raise_on_non_zero_exit: false).strip
             messhy_records = capture(:bash, '-c',
                                      "sudo awk 'BEGIN{c=0} /^address=\\//{c++} END{print c}' " \
-                                     "/etc/dnsmasq.d/messhy.conf 2>/dev/null || true").strip
+                                     '/etc/dnsmasq.d/messhy.conf 2>/dev/null || true').strip
             ap_records = capture(:bash, '-c',
                                  "sudo awk 'BEGIN{c=0} /^address=\\//{c++} END{print c}' " \
-                                 "/etc/dnsmasq.d/active_postgres.conf 2>/dev/null || true").strip
+                                 '/etc/dnsmasq.d/active_postgres.conf 2>/dev/null || true').strip
 
             status_icon = service == 'active' ? '✓' : '✗'
             puts "#{status_icon} #{node_name} (#{node_config['private_ip']})#{label_display} - dnsmasq #{service}"
@@ -224,7 +222,7 @@ module Messhy
       end
 
       max_name_len = node_names.map(&:length).max
-      header = ' ' * (max_name_len + 2) + node_names.map { |n| n[0..7].rjust(8) }.join(' ')
+      header = (' ' * (max_name_len + 2)) + node_names.map { |n| n[0..7].rjust(8) }.join(' ')
       puts header
       puts '-' * header.length
 

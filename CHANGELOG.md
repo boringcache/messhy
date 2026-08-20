@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Require Ruby 4.0 or newer.
+- Align runtime and development dependencies with the maintained toolchain.
+- Add blocking test, lint, dependency-audit, and package-build CI checks.
+- Add automated Bundler and GitHub Actions dependency updates.
+- Document key custody, SSH trust, and full-mesh security boundaries.
+
 ## [0.1.0] - 2025-01-21
 
 ### Added
@@ -37,13 +47,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `messhy status` - Check mesh network health and connectivity
 - `messhy add_node` - Add new node to existing mesh
 - `messhy remove_node` - Remove node from mesh
-
-## [Unreleased]
-
-### Planned
-- Support for custom IP ranges and subnets
-- Multi-region mesh optimization
-- Traffic routing policies
-- Network performance monitoring
-- Automatic failover for unreachable nodes
-- Integration with cloud provider APIs

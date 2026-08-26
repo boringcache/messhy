@@ -75,6 +75,7 @@ class SSHExecutorTest < Minitest::Test
     script = Messhy::SSHExecutor.new(config).send(:reconcile_script, '/tmp/candidate')
 
     assert_includes script, 'wg syncconf wg0 "$stripped"'
+    assert_includes script, 'candidate=/etc/wireguard/wg0.next.conf'
     assert_includes script, 'cp -p "$previous" "$target"'
     assert_includes script, 'systemctl start wg-quick@wg0'
     refute_includes script, 'systemctl restart wg-quick@wg0'

@@ -387,7 +387,7 @@ module Messhy
       <<~SCRIPT
         set -euo pipefail
         target=/etc/wireguard/wg0.conf
-        candidate=/etc/wireguard/wg0.conf.next
+        candidate=/etc/wireguard/wg0.next.conf
         previous=/etc/wireguard/wg0.conf.previous
         stripped=/tmp/messhy-wg0.stripped
 

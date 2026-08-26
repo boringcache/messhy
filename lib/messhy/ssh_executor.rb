@@ -322,6 +322,8 @@ module Messhy
       ssh_port = node_config['ssh_port'] || node_config['port']
       host.port = ssh_port if ssh_port
 
+      host.ssh_options = (host.ssh_options || {}).merge(strict_ssh_options)
+
       if node_config['ssh_key']
         keys = Array(node_config['ssh_key']).map { |path| File.expand_path(path) }
         merged = (host.ssh_options || {}).merge(keys: keys, keys_only: true)
@@ -335,6 +337,12 @@ module Messhy
 
       manage_property(host.properties, :node_name, node_name)
       host
+    end
+
+    def strict_ssh_options
+      options = { verify_host_key: config.verify_host_key_mode }
+      options[:user_known_hosts_file] = [config.ssh_known_hosts_file] if config.ssh_known_hosts_file
+      options
     end
 
     def jump_proxy(jump_host_config)

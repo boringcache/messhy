@@ -65,6 +65,8 @@ class SSHExecutorTest < Minitest::Test
       host = executor.send(:host_for, 'target', config.node_config('target'))
 
       assert_equal [known_hosts.path], options.fetch(:user_known_hosts_file)
+      assert_equal [known_hosts.path], host.ssh_options.fetch(:user_known_hosts_file)
+      assert_equal :always, host.ssh_options.fetch(:verify_host_key)
       assert_includes host.ssh_options.fetch(:proxy).command_line_template,
                       "UserKnownHostsFile\\=#{known_hosts.path}"
     end

@@ -2,6 +2,8 @@
 
 require 'sshkit'
 require 'sshkit/dsl'
+require 'net/ssh/proxy/command'
+require 'shellwords'
 require 'stringio'
 
 module Messhy
@@ -299,8 +301,47 @@ module Messhy
         host.ssh_options = merged
       end
 
+      if (jump_host_config = config.jump_host_config(node_name))
+        merged = (host.ssh_options || {}).merge(proxy: jump_proxy(jump_host_config))
+        host.ssh_options = merged
+      end
+
       manage_property(host.properties, :node_name, node_name)
       host
+    end
+
+    def jump_proxy(jump_host_config)
+      jump_user = jump_host_config['ssh_user'] || jump_host_config['user'] || config.user
+      jump_port = jump_host_config['ssh_port'] || jump_host_config['port']
+      jump_key = jump_host_config['ssh_key'] || config.ssh_key
+      command = [
+        'ssh',
+        '-F', '/dev/null',
+        '-o', 'BatchMode=yes',
+        '-o', 'ForwardAgent=no',
+        '-o', "StrictHostKeyChecking=#{open_ssh_host_key_mode}"
+      ]
+
+      if jump_key && File.exist?(File.expand_path(jump_key))
+        command.push('-i', File.expand_path(jump_key), '-o', 'IdentitiesOnly=yes')
+      end
+
+      command.push('-p', jump_port.to_s) if jump_port
+      command.push('-W', '%h:%p', "#{jump_user}@#{jump_host_config.fetch('host')}")
+
+      command_line = Shellwords.join(command).gsub('\\%h', '%h').gsub('\\%p', '%p')
+      Net::SSH::Proxy::Command.new(command_line)
+    end
+
+    def open_ssh_host_key_mode
+      case config.verify_host_key_mode
+      when :accept_new
+        'accept-new'
+      when :never
+        'no'
+      else
+        'yes'
+      end
     end
 
     def manage_property(properties, key, value = nil)

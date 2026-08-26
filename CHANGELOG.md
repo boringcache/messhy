@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Per-node `jump_host` routing for SSH bootstrap without copying private keys to the jump host.
+
 ## [0.8.3] - 2026-08-20
 
 ### Changed

@@ -38,6 +38,7 @@ development:
       host: localhost
       # ssh_port: 2222            # Optional per-node SSH port
       # ssh_user: deploy          # Optional per-node SSH user
+      # jump_host: existing-node  # Optional node name used as an SSH jump host
       # listen_port: 51821        # Optional per-node WireGuard port
       private_ip: 10.8.0.10
       label: local
@@ -48,5 +49,6 @@ production:
     # TODO: Add your servers here
     # web1:
     #   host: YOUR_SERVER_PUBLIC_IP
+    #   jump_host: existing-node
     #   private_ip: 10.8.0.10
     #   label: us-east-1

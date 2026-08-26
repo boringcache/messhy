@@ -227,6 +227,49 @@ class ConfigurationTest < Minitest::Test
     assert config.validate!
   end
 
+  def test_validate_accepts_a_known_jump_host
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'jump' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' },
+          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'jump' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    assert config.validate!
+    assert_equal '1.2.3.4', config.jump_host_config('target').fetch('host')
+  end
+
+  def test_validate_rejects_an_unknown_jump_host
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'missing' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+    assert_match(/jump_host not found: missing/, error.message)
+  end
+
+  def test_validate_rejects_a_self_referencing_jump_host
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'target' }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+    assert_match(/cannot use itself as jump_host/, error.message)
+  end
+
   def test_verify_host_key_mode_always
     config_hash = { 'test' => { 'verify_host_key' => true, 'nodes' => {} } }
     config = Messhy::Configuration.new(config_hash, 'test')

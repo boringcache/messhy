@@ -10,6 +10,7 @@ module Messhy
                 :dns,
                 :user,
                 :ssh_key,
+                :ssh_known_hosts_file,
                 :mtu,
                 :listen_port,
                 :keepalive,
@@ -24,6 +25,7 @@ module Messhy
       @dns = env_config['dns'] || {}
       @user = env_config['user'] || 'ubuntu'
       @ssh_key = File.expand_path(env_config['ssh_key'] || '~/.ssh/id_rsa')
+      @ssh_known_hosts_file = optional_path(env_config['ssh_known_hosts_file'])
       @mtu = env_config['mtu'] || 1280
       @listen_port = env_config['listen_port'] || 51_820
       @keepalive = env_config['keepalive'] || 25
@@ -65,10 +67,7 @@ module Messhy
     def validate!
       raise Error, 'No nodes defined' if @nodes.empty?
 
-      @nodes.each do |name, config|
-        raise Error, "Node #{name} missing 'host'" unless config['host']
-        raise Error, "Node #{name} missing 'private_ip'" unless config['private_ip']
-      end
+      @nodes.each { |name, config| validate_node!(name, config) }
 
       if dns_enabled?
         raise Error, 'DNS domain is required when dns is enabled' if dns_domains.empty?
@@ -81,6 +80,13 @@ module Messhy
       end
 
       true
+    end
+
+    def jump_host_config(name)
+      jump_host = node_config(name)&.dig('jump_host')
+      return unless jump_host
+
+      node_config(jump_host) || raise(Error, "Node #{name} jump_host not found: #{jump_host}")
     end
 
     def verify_host_key_mode
@@ -148,6 +154,23 @@ module Messhy
       return true unless @dns.key?('auto_records')
 
       @dns['auto_records'] == true
+    end
+
+    private
+
+    def optional_path(path)
+      File.expand_path(path) if path
+    end
+
+    def validate_node!(name, config)
+      raise Error, "Node #{name} missing 'host'" unless config['host']
+      raise Error, "Node #{name} missing 'private_ip'" unless config['private_ip']
+
+      jump_host = config['jump_host']
+      return unless jump_host
+
+      raise Error, "Node #{name} cannot use itself as jump_host" if jump_host == name
+      raise Error, "Node #{name} jump_host not found: #{jump_host}" unless node_config(jump_host)
     end
   end
 end

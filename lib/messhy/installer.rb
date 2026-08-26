@@ -11,12 +11,61 @@ module Messhy
   class Installer
     attr_reader :config, :dry_run, :ssh_executor
 
-    def initialize(config, dry_run: false)
+    def initialize(config, dry_run: false, ssh_executor: SSHExecutor.new(config))
       @config = config
       @dry_run = dry_run
-      @ssh_executor = SSHExecutor.new(config)
+      @ssh_executor = ssh_executor
       @node_keys = load_existing_keys
       @psk_map = load_existing_psks
+    end
+
+    def import_keys
+      puts '==> Importing existing WireGuard key material'
+      config.validate!
+
+      imported_psks = {}
+      config.each_node do |node_name, node_config|
+        snapshot = WireguardConfig.parse(ssh_executor.read_wireguard_config(node_name))
+        validate_imported_address!(node_name, node_config, snapshot)
+        import_node_key(node_name, snapshot)
+        import_peer_psks(node_name, snapshot, imported_psks)
+        puts "  ✓ Imported #{node_name}"
+      end
+
+      @psk_map.merge!(imported_psks)
+      persist_psk_map
+      puts "✓ Imported #{config.node_names.size} node keys and #{@psk_map.size} peer keys"
+    end
+
+    def reconcile
+      puts '==> Reconciling WireGuard mesh without restarting active interfaces'
+      config.validate!
+
+      puts "\n==> Installing missing WireGuard tools..."
+      install_wireguard_on_all_nodes
+      puts "\n==> Ensuring key material exists..."
+      generate_all_keys
+
+      configs = MeshBuilder.new(config, @node_keys, @psk_map || {}).build_all_configs
+      puts "\n==> Applying configurations sequentially..."
+      configs.each do |node_name, config_content|
+        if dry_run
+          puts "  [DRY RUN] Would reconcile #{node_name}"
+        else
+          ssh_executor.reconcile_config(node_name, config_content)
+          puts "  ✓ Reconciled #{node_name}"
+        end
+      end
+
+      puts "\n==> Verifying mesh connectivity..."
+      verify_mesh
+
+      if config.dns_enabled?
+        puts "\n==> Reconciling mesh DNS..."
+        DnsManager.new(config, ssh_executor: ssh_executor, dry_run: dry_run).setup
+      end
+
+      puts "\n✓ WireGuard mesh reconciled"
     end
 
     def setup(skip: nil)
@@ -129,6 +178,36 @@ module Messhy
     end
 
     private
+
+    def validate_imported_address!(node_name, node_config, snapshot)
+      address = snapshot.interface['Address'].to_s.split('/').first
+      return if address == node_config['private_ip']
+
+      raise Error, "Node #{node_name} WireGuard address #{address.inspect} does not match #{node_config['private_ip']}"
+    end
+
+    def import_node_key(node_name, snapshot)
+      private_key = snapshot.interface['PrivateKey']
+      raise Error, "Node #{node_name} has no WireGuard private key" if private_key.to_s.empty?
+
+      keypair = { private_key: private_key, public_key: ssh_executor.wireguard_public_key(node_name) }
+      @node_keys[node_name] = keypair
+      store_keypair(node_name, keypair)
+    end
+
+    def import_peer_psks(node_name, snapshot, imported_psks)
+      snapshot.peers.each do |peer|
+        peer_name = peer['Name']
+        psk = peer['PresharedKey']
+        next if peer_name.to_s.empty? || psk.to_s.empty?
+
+        pair_key = [node_name, peer_name].sort.join('-')
+        existing = imported_psks[pair_key]
+        raise Error, "Conflicting WireGuard peer key for #{pair_key}" if existing && existing != psk
+
+        imported_psks[pair_key] = psk
+      end
+    end
 
     def generate_all_keys(skip: nil)
       config.each_node do |node_name, _|

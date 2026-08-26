@@ -110,6 +110,31 @@ module Messhy
       end
     end
 
+    def read_wireguard_config(node_name)
+      content = nil
+      execute_on_node(node_name) do
+        content = capture(:sudo, :cat, '/etc/wireguard/wg0.conf')
+      end
+      content
+    end
+
+    def wireguard_public_key(node_name)
+      public_key = nil
+      execute_on_node(node_name) do
+        public_key = capture(:sudo, :wg, 'show', 'wg0', 'public-key').strip
+      end
+      public_key
+    end
+
+    def reconcile_config(node_name, config_content)
+      temp_file = '/tmp/messhy-wg0.conf'
+      script = reconcile_script(temp_file)
+      execute_on_node(node_name) do
+        upload! StringIO.new(config_content), temp_file
+        execute :sudo, :bash, '-lc', Shellwords.escape(script)
+      end
+    end
+
     def upload_and_start_configs(configs)
       hosts = configs.filter_map do |node_name, config_content|
         node_config = config.node_config(node_name)
@@ -279,6 +304,8 @@ module Messhy
         verify_host_key: config.verify_host_key_mode
       }
 
+      options[:user_known_hosts_file] = [config.ssh_known_hosts_file] if config.ssh_known_hosts_file
+
       if File.exist?(config.ssh_key)
         options[:keys] = [config.ssh_key]
         options[:keys_only] = true
@@ -322,6 +349,8 @@ module Messhy
         '-o', "StrictHostKeyChecking=#{open_ssh_host_key_mode}"
       ]
 
+      command.push('-o', "UserKnownHostsFile=#{config.ssh_known_hosts_file}") if config.ssh_known_hosts_file
+
       if jump_key && File.exist?(File.expand_path(jump_key))
         command.push('-i', File.expand_path(jump_key), '-o', 'IdentitiesOnly=yes')
       end
@@ -352,6 +381,40 @@ module Messhy
         # Assign mode
         properties.respond_to?(:set) ? properties.set(key, value) : properties[key] = value
       end
+    end
+
+    def reconcile_script(temp_file)
+      <<~SCRIPT
+        set -euo pipefail
+        target=/etc/wireguard/wg0.conf
+        candidate=/etc/wireguard/wg0.conf.next
+        previous=/etc/wireguard/wg0.conf.previous
+        stripped=/tmp/messhy-wg0.stripped
+
+        install -o root -g root -m 600 #{temp_file} "$candidate"
+        wg-quick strip "$candidate" > "$stripped"
+
+        if systemctl is-active --quiet wg-quick@wg0; then
+          cp -p "$target" "$previous"
+          mv "$candidate" "$target"
+          if ! wg syncconf wg0 "$stripped"; then
+            cp -p "$previous" "$target"
+            wg-quick strip "$target" > "$stripped"
+            wg syncconf wg0 "$stripped"
+            exit 1
+          fi
+        else
+          test ! -f "$target" || cp -p "$target" "$previous"
+          mv "$candidate" "$target"
+          systemctl enable wg-quick@wg0
+          if ! systemctl start wg-quick@wg0; then
+            test ! -f "$previous" || cp -p "$previous" "$target"
+            exit 1
+          fi
+        fi
+
+        rm -f "$stripped" #{temp_file}
+      SCRIPT
     end
   end
 end

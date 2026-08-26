@@ -26,6 +26,23 @@ module Messhy
       handle_ssh_error(e, config)
     end
 
+    desc 'reconcile', 'Apply mesh changes without restarting active WireGuard interfaces'
+    option :dry_run, type: :boolean, default: false
+    def reconcile
+      config = load_config
+      Installer.new(config, dry_run: options[:dry_run]).reconcile
+    rescue SSHKit::Runner::ExecuteError => e
+      handle_ssh_error(e, config)
+    end
+
+    desc 'import-keys', 'Import existing mesh key material into the local secrets directory'
+    def import_keys
+      config = load_config
+      Installer.new(config).import_keys
+    rescue SSHKit::Runner::ExecuteError => e
+      handle_ssh_error(e, config)
+    end
+
     desc 'dns', 'Setup mesh DNS (dnsmasq)'
     option :dry_run, type: :boolean, default: false
     option :skip_node, type: :string

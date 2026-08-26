@@ -2,6 +2,7 @@
 
 require_relative 'messhy/version'
 require_relative 'messhy/configuration'
+require_relative 'messhy/wireguard_config'
 require_relative 'messhy/wireguard_status_parser'
 require_relative 'messhy/installer'
 require_relative 'messhy/mesh_builder'

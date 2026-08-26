@@ -10,6 +10,7 @@ module Messhy
                 :dns,
                 :user,
                 :ssh_key,
+                :ssh_known_hosts_file,
                 :mtu,
                 :listen_port,
                 :keepalive,
@@ -24,6 +25,7 @@ module Messhy
       @dns = env_config['dns'] || {}
       @user = env_config['user'] || 'ubuntu'
       @ssh_key = File.expand_path(env_config['ssh_key'] || '~/.ssh/id_rsa')
+      @ssh_known_hosts_file = optional_path(env_config['ssh_known_hosts_file'])
       @mtu = env_config['mtu'] || 1280
       @listen_port = env_config['listen_port'] || 51_820
       @keepalive = env_config['keepalive'] || 25
@@ -155,6 +157,10 @@ module Messhy
     end
 
     private
+
+    def optional_path(path)
+      File.expand_path(path) if path
+    end
 
     def validate_node!(name, config)
       raise Error, "Node #{name} missing 'host'" unless config['host']

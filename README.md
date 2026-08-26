@@ -159,6 +159,22 @@ messhy setup --skip-node=app-1            # Skip specific node
 messhy setup --only-node=db-primary       # Setup single node
 ```
 
+For an existing mesh, import its live key material once through trusted SSH,
+then reconcile additions or peer changes without restarting active WireGuard
+interfaces:
+
+```bash
+messhy import-keys --environment=production
+messhy reconcile --environment=production --dry-run
+messhy reconcile --environment=production
+```
+
+`import-keys` writes the same mode-`0600` local secret files as initial setup
+and never prints key material. `reconcile` validates each candidate config,
+applies active peer changes with `wg syncconf`, and restores the previous config
+if a live sync fails. Set `ssh_known_hosts_file` to a reviewed file when the
+mesh should not depend on the operator's global SSH configuration.
+
 ### Status & Monitoring
 
 ```bash

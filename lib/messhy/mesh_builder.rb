@@ -25,7 +25,7 @@ module Messhy
       template = ERB.new(File.read(template_path), trim_mode: '-')
 
       # Prepare data for template
-      interface_ip = node_config['private_ip']
+      interface_ip = node_config['mesh_ip']
       prefix_length = config.network_prefix_length
       private_key = keys[:private_key]
       listen_port = node_config['listen_port'] || config.listen_port
@@ -39,7 +39,7 @@ module Messhy
         dns_domain = config.dns_domain
         dns_interface = config.dns_interface
         dns_server_ips = config.dns_server_nodes.filter_map do |name|
-          config.node_config(name)&.dig('private_ip')
+          config.node_config(name)&.dig('mesh_ip')
         end
       end
 
@@ -56,13 +56,15 @@ module Messhy
         # Get symmetric PSK for this peer pair
         pair_key = [node_name, peer_name].sort.join('-')
         psk = psk_map[pair_key]
+        endpoint = config.peer_endpoint_for(node_name, peer_name)
+        peer_listen_port = peer_config['listen_port'] || config.listen_port
 
         peers << {
           name: peer_name,
           public_key: peer_keys[:public_key],
           preshared_key: psk,
-          allowed_ips: "#{peer_config['private_ip']}/32",
-          endpoint: "#{peer_config['host']}:#{peer_config['listen_port'] || config.listen_port}",
+          allowed_ips: "#{peer_config['mesh_ip']}/32",
+          endpoint: "#{endpoint}:#{peer_listen_port}",
           keepalive: config.keepalive
         }
       end

@@ -43,7 +43,7 @@ module Messhy
         peers = status.scan(/peer: (.+?)$/).flatten
 
         if peers.any?
-          puts "✓ #{node_name} (#{node_config['private_ip']})#{label_display} - connected to #{peers.size} peers"
+          puts "✓ #{node_name} (#{node_config['mesh_ip']})#{label_display} - connected to #{peers.size} peers"
 
           # Show basic peer info
           status.split('peer:').drop(1).each do |peer_block|
@@ -54,10 +54,10 @@ module Messhy
             puts "  └─ Peer: #{endpoint} - #{stats[:received]} rx, #{stats[:sent]} tx"
           end
         else
-          puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - 0 peers (DOWN)"
+          puts "✗ #{node_name} (#{node_config['mesh_ip']})#{label_display} - 0 peers (DOWN)"
         end
       rescue StandardError => e
-        puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - Error: #{e.message}"
+        puts "✗ #{node_name} (#{node_config['mesh_ip']})#{label_display} - Error: #{e.message}"
       end
     end
 
@@ -69,12 +69,12 @@ module Messhy
       if node_or_ip =~ /^\d+\.\d+\.\d+\.\d+$/
         # It's an IP
         target_ip = node_or_ip
-        target_node = config.nodes.find { |_, cfg| cfg['private_ip'] == target_ip }&.first
+        target_node = config.nodes.find { |_, cfg| cfg['mesh_ip'] == target_ip }&.first
       else
         # It's a node name
         target_node = node_or_ip
         node_config = config.node_config(target_node)
-        target_ip = node_config['private_ip'] if node_config
+        target_ip = node_config['mesh_ip'] if node_config
       end
 
       unless target_ip
@@ -115,7 +115,7 @@ module Messhy
 
           tested_pairs.add(pair_key)
           test_count += 1
-          target_ip = target_config['private_ip']
+          target_ip = target_config['mesh_ip']
 
           print "[#{test_count}/#{total_tests}] Testing #{source_name} → #{target_name} (#{target_ip})... "
           $stdout.flush
@@ -132,7 +132,7 @@ module Messhy
 
           if success
             puts '✓'
-          elsif handshake_recent?(source_name, target_config['private_ip'], status_cache)
+          elsif handshake_recent?(source_name, target_config['mesh_ip'], status_cache)
             puts '✓ (handshake)'
           else
             puts '✗ (ICMP/TCP may be blocked, and no recent WireGuard handshake)'
@@ -183,11 +183,11 @@ module Messhy
                                  '/etc/dnsmasq.d/active_postgres.conf 2>/dev/null || true').strip
 
             status_icon = service == 'active' ? '✓' : '✗'
-            puts "#{status_icon} #{node_name} (#{node_config['private_ip']})#{label_display} - dnsmasq #{service}"
+            puts "#{status_icon} #{node_name} (#{node_config['mesh_ip']})#{label_display} - dnsmasq #{service}"
             puts "  └─ records: messhy=#{messhy_records.to_i} active_postgres=#{ap_records.to_i}"
           end
         rescue StandardError => e
-          puts "✗ #{node_name} (#{node_config['private_ip']})#{label_display} - DNS check failed: #{e.message}"
+          puts "✗ #{node_name} (#{node_config['mesh_ip']})#{label_display} - DNS check failed: #{e.message}"
         end
       end
 
@@ -214,7 +214,7 @@ module Messhy
           next if tested_pairs.include?(pair_key)
 
           tested_pairs.add(pair_key)
-          target_ip = config.node_config(target)['private_ip']
+          target_ip = config.node_config(target)['mesh_ip']
           latency = @ssh_executor.measure_latency(source, target_ip)
           latencies[[source, target]] = latency
           latencies[[target, source]] = latency
@@ -257,7 +257,7 @@ module Messhy
     def show_node_stats(node_name)
       node_config = config.node_config(node_name)
 
-      puts "==> Stats for #{node_name} (#{node_config['private_ip']})"
+      puts "==> Stats for #{node_name} (#{node_config['mesh_ip']})"
 
       begin
         status = @ssh_executor.get_wireguard_status(node_name)

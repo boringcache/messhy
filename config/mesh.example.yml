@@ -36,7 +36,7 @@ development:
   nodes:
     localhost:
       host: 127.0.0.1
-      private_ip: 10.8.0.1
+      mesh_ip: 10.8.0.1
 
 # Staging
 staging:
@@ -46,18 +46,18 @@ staging:
       host: 34.12.234.81
       ssh_port: 2222               # Optional per-node SSH port
       ssh_user: deploy             # Optional per-node SSH user
-      private_ip: 10.8.0.10
+      mesh_ip: 10.8.0.10
       listen_port: 51821           # Optional WireGuard listen port
       region: us-east-1
 
     db-standby:
       host: 52.23.45.67
-      private_ip: 10.8.0.11
+      mesh_ip: 10.8.0.11
       region: us-west-2
 
     app-1:
       host: 18.156.78.90
-      private_ip: 10.8.0.20
+      mesh_ip: 10.8.0.20
       region: us-east-1
 
 # Production
@@ -66,40 +66,40 @@ production:
   nodes:
     db-primary:
       host: 34.12.234.81
-      private_ip: 10.8.0.10
+      mesh_ip: 10.8.0.10
       region: us-east-1
 
     db-standby-1:
       host: 52.23.45.67
-      private_ip: 10.8.0.11
+      mesh_ip: 10.8.0.11
       region: us-west-2
 
     db-standby-2:
       host: 18.156.78.90
-      private_ip: 10.8.0.12
+      mesh_ip: 10.8.0.12
       region: eu-west-1
 
     app-us-1:
       host: 13.48.92.134
-      private_ip: 10.8.0.20
+      mesh_ip: 10.8.0.20
       region: us-east-1
 
     app-us-2:
       host: 54.23.156.78
-      private_ip: 10.8.0.21
+      mesh_ip: 10.8.0.21
       region: us-east-1
 
     app-eu-1:
       host: 35.178.45.23
-      private_ip: 10.8.0.30
+      mesh_ip: 10.8.0.30
       region: eu-west-1
 
     redis:
       host: 52.89.12.45
-      private_ip: 10.8.0.40
+      mesh_ip: 10.8.0.40
       region: us-east-1
 
     memcached:
       host: 18.234.56.78
-      private_ip: 10.8.0.50
+      mesh_ip: 10.8.0.50
       region: us-east-1

@@ -124,7 +124,7 @@ module Messhy
     def list
       config = load_config
       config.each_node do |name, node_config|
-        puts "#{name}: #{node_config['host']} (#{node_config['private_ip']})"
+        puts "#{name}: #{node_config['host']} (#{node_config['mesh_ip']})"
       end
     end
 
@@ -140,7 +140,7 @@ module Messhy
 
       puts "Node: #{name}"
       puts "Host: #{node_config['host']}"
-      puts "Private IP: #{node_config['private_ip']}"
+      puts "Mesh IP: #{node_config['mesh_ip']}"
       puts "Region: #{node_config['region']}" if node_config['region']
 
       health_checker = HealthChecker.new(config)

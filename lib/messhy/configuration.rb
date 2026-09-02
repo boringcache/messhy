@@ -21,7 +21,7 @@ module Messhy
       env_config = config_hash[environment] || {}
 
       @network = env_config['network'] || '10.8.0.0/24'
-      @nodes = env_config['nodes'] || {}
+      @nodes = normalize_nodes(env_config['nodes'] || {})
       @dns = env_config['dns'] || {}
       @user = env_config['user'] || 'ubuntu'
       @ssh_key = File.expand_path(env_config['ssh_key'] || '~/.ssh/id_rsa')
@@ -47,6 +47,16 @@ module Messhy
 
     def node_config(name)
       @nodes[name]
+    end
+
+    def peer_endpoint_for(node_name, peer_name)
+      node = node_config(node_name)
+      peer = node_config(peer_name)
+
+      return peer['host'] unless node['lan'] && peer['lan']
+      return peer['host'] unless node.dig('lan', 'network') == peer.dig('lan', 'network')
+
+      peer.dig('lan', 'ip')
     end
 
     def each_node(&)
@@ -162,15 +172,41 @@ module Messhy
       File.expand_path(path) if path
     end
 
+    def normalize_nodes(nodes)
+      nodes.to_h do |name, config|
+        [name, normalize_node(name, config)]
+      end
+    end
+
+    def normalize_node(name, config)
+      config = config.dup
+      legacy_mesh_ip = config.delete('private_ip')
+
+      if config['mesh_ip'] && legacy_mesh_ip && config['mesh_ip'] != legacy_mesh_ip
+        raise Error, "Node #{name} has conflicting 'mesh_ip' and deprecated 'private_ip' values"
+      end
+
+      config['mesh_ip'] ||= legacy_mesh_ip
+      config
+    end
+
     def validate_node!(name, config)
       raise Error, "Node #{name} missing 'host'" unless config['host']
-      raise Error, "Node #{name} missing 'private_ip'" unless config['private_ip']
+      raise Error, "Node #{name} missing 'mesh_ip'" unless config['mesh_ip']
+
+      validate_lan!(name, config['lan']) if config['lan']
 
       jump_host = config['jump_host']
       return unless jump_host
 
       raise Error, "Node #{name} cannot use itself as jump_host" if jump_host == name
       raise Error, "Node #{name} jump_host not found: #{jump_host}" unless node_config(jump_host)
+    end
+
+    def validate_lan!(name, lan)
+      raise Error, "Node #{name} 'lan' must be a mapping" unless lan.is_a?(Hash)
+      raise Error, "Node #{name} lan missing 'network'" if lan['network'].to_s.empty?
+      raise Error, "Node #{name} lan missing 'ip'" if lan['ip'].to_s.empty?
     end
   end
 end

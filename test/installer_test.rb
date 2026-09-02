@@ -16,8 +16,8 @@ class InstallerTest < Minitest::Test
     config = Messhy::Configuration.new({
                                          'test' => {
                                            'nodes' => {
-                                             'one' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' },
-                                             'two' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2' }
+                                             'one' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' },
+                                             'two' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2' }
                                            }
                                          }
                                        }, 'test')

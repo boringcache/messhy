@@ -5,7 +5,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'development' => {
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -31,7 +31,7 @@ class ConfigurationTest < Minitest::Test
         'keepalive' => 30,
         'verify_host_key' => false,
         'nodes' => {
-          'server1' => { 'host' => '5.6.7.8', 'private_ip' => '10.9.0.1' }
+          'server1' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.9.0.1' }
         }
       }
     }
@@ -50,7 +50,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -73,7 +73,7 @@ class ConfigurationTest < Minitest::Test
           'domain' => 'mesh.internal'
         },
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -92,7 +92,7 @@ class ConfigurationTest < Minitest::Test
           'servers' => ['node1']
         },
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -111,7 +111,7 @@ class ConfigurationTest < Minitest::Test
           'servers' => ['missing-node']
         },
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -125,8 +125,8 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'alpha' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'beta' => { 'host' => '2.2.2.2', 'private_ip' => '10.8.0.2' }
+          'alpha' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'beta' => { 'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2' }
         }
       }
     }
@@ -139,7 +139,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'alpha' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' }
+          'alpha' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -147,7 +147,98 @@ class ConfigurationTest < Minitest::Test
 
     node = config.node_config('alpha')
     assert_equal '1.1.1.1', node['host']
-    assert_equal '10.8.0.1', node['private_ip']
+    assert_equal '10.8.0.1', node['mesh_ip']
+  end
+
+  def test_normalizes_the_deprecated_private_ip
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'alpha' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' }
+        }
+      }
+    }
+
+    node = Messhy::Configuration.new(config_hash, 'test').node_config('alpha')
+
+    assert_equal '10.8.0.1', node['mesh_ip']
+    refute node.key?('private_ip')
+  end
+
+  def test_rejects_conflicting_mesh_ip_names
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'alpha' => {
+            'host' => '1.1.1.1',
+            'mesh_ip' => '10.8.0.1',
+            'private_ip' => '10.8.0.2'
+          }
+        }
+      }
+    }
+
+    error = assert_raises(Messhy::Error) { Messhy::Configuration.new(config_hash, 'test') }
+
+    assert_match(/conflicting 'mesh_ip' and deprecated 'private_ip'/, error.message)
+  end
+
+  def test_uses_the_peer_lan_ip_on_a_shared_network
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'alpha' => {
+            'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1',
+            'lan' => { 'network' => 'gcp-virginia', 'ip' => '10.100.0.4' }
+          },
+          'beta' => {
+            'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2',
+            'lan' => { 'network' => 'gcp-virginia', 'ip' => '10.100.0.5' }
+          }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    assert_equal '10.100.0.5', config.peer_endpoint_for('alpha', 'beta')
+  end
+
+  def test_uses_the_peer_host_across_different_networks
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'alpha' => {
+            'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1',
+            'lan' => { 'network' => 'gcp-virginia', 'ip' => '10.100.0.4' }
+          },
+          'beta' => {
+            'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2',
+            'lan' => { 'network' => 'aws-virginia', 'ip' => '10.70.1.10' }
+          }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    assert_equal '2.2.2.2', config.peer_endpoint_for('alpha', 'beta')
+  end
+
+  def test_validate_requires_a_complete_lan
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'alpha' => {
+            'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1',
+            'lan' => { 'network' => 'gcp-virginia' }
+          }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+
+    error = assert_raises(Messhy::Error) { config.validate! }
+
+    assert_match(/lan missing 'ip'/, error.message)
   end
 
   def test_network_prefix_length
@@ -190,7 +281,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'bad_node' => { 'private_ip' => '10.8.0.1' }
+          'bad_node' => { 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -200,7 +291,7 @@ class ConfigurationTest < Minitest::Test
     assert_match(/missing 'host'/, error.message)
   end
 
-  def test_validate_raises_when_node_missing_private_ip
+  def test_validate_raises_when_node_missing_mesh_ip
     config_hash = {
       'test' => {
         'nodes' => {
@@ -211,14 +302,14 @@ class ConfigurationTest < Minitest::Test
     config = Messhy::Configuration.new(config_hash, 'test')
 
     error = assert_raises(Messhy::Error) { config.validate! }
-    assert_match(/missing 'private_ip'/, error.message)
+    assert_match(/missing 'mesh_ip'/, error.message)
   end
 
   def test_validate_returns_true_when_valid
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -231,8 +322,8 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'jump' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' },
-          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'jump' }
+          'jump' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' },
+          'target' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2', 'jump_host' => 'jump' }
         }
       }
     }
@@ -246,7 +337,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'missing' }
+          'target' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2', 'jump_host' => 'missing' }
         }
       }
     }
@@ -260,7 +351,7 @@ class ConfigurationTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'target' }
+          'target' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2', 'jump_host' => 'target' }
         }
       }
     }

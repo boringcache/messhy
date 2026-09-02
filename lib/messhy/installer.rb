@@ -181,9 +181,9 @@ module Messhy
 
     def validate_imported_address!(node_name, node_config, snapshot)
       address = snapshot.interface['Address'].to_s.split('/').first
-      return if address == node_config['private_ip']
+      return if address == node_config['mesh_ip']
 
-      raise Error, "Node #{node_name} WireGuard address #{address.inspect} does not match #{node_config['private_ip']}"
+      raise Error, "Node #{node_name} WireGuard address #{address.inspect} does not match #{node_config['mesh_ip']}"
     end
 
     def import_node_key(node_name, snapshot)

@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-02
+
 ### Added
 
 - Per-node `jump_host` routing for SSH bootstrap without copying private keys to the jump host.
 - Strict known-hosts file configuration, live key import, and sequential
   `wg syncconf` reconciliation for adding nodes without restarting active interfaces.
+- Optional `lan` transports that route WireGuard directly over a shared named
+  private network and fall back to each peer's public `host` otherwise.
+
+### Changed
+
+- Rename the WireGuard identity from `private_ip` to `mesh_ip`. Existing
+  `private_ip` configuration is normalized at load time for compatibility.
 
 ## [0.8.3] - 2026-08-20
 

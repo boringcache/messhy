@@ -10,8 +10,8 @@ class SSHExecutorTest < Minitest::Test
         'ssh_key' => ssh_key,
         'verify_host_key' => 'accept_new',
         'nodes' => {
-          'jump' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' },
-          'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'jump' }
+          'jump' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' },
+          'target' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2', 'jump_host' => 'jump' }
         }
       }
     }
@@ -35,7 +35,7 @@ class SSHExecutorTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'direct' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' }
+          'direct' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -53,8 +53,8 @@ class SSHExecutorTest < Minitest::Test
         'test' => {
           'ssh_known_hosts_file' => known_hosts.path,
           'nodes' => {
-            'jump' => { 'host' => '1.2.3.4', 'private_ip' => '10.8.0.1' },
-            'target' => { 'host' => '5.6.7.8', 'private_ip' => '10.8.0.2', 'jump_host' => 'jump' }
+            'jump' => { 'host' => '1.2.3.4', 'mesh_ip' => '10.8.0.1' },
+            'target' => { 'host' => '5.6.7.8', 'mesh_ip' => '10.8.0.2', 'jump_host' => 'jump' }
           }
         }
       }

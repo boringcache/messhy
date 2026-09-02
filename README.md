@@ -38,15 +38,21 @@ production:
   nodes:
     db-primary:
       host: 34.12.234.81
-      private_ip: 10.8.0.10
+      mesh_ip: 10.8.0.10
+      lan:
+        network: aws-virginia
+        ip: 10.70.1.10
 
     db-standby:
       host: 52.23.45.67
-      private_ip: 10.8.0.11
+      mesh_ip: 10.8.0.11
+      lan:
+        network: aws-virginia
+        ip: 10.70.1.11
 
     app-1:
       host: 18.156.78.90
-      private_ip: 10.8.0.20
+      mesh_ip: 10.8.0.20
 ```
 
 2. **Setup mesh**:
@@ -248,10 +254,15 @@ interface.
 ### Node Configuration
 
 Each node requires:
-- `host`: Public IP or hostname
-- `private_ip`: Private VPN IP (must be within network range)
+
+- `host`: Public IP or hostname used for SSH and as the WireGuard endpoint fallback
+- `mesh_ip`: Stable IP inside the WireGuard network
 
 Optional per-node overrides:
+
+- `lan`: A shared private transport with `network` and `ip`. Peers on the same
+  named network use the LAN IP as their WireGuard endpoint; all other peers use
+  `host`.
 - `ssh_user` / `ssh_port`: Override SSH access details (defaults to top-level `user` and port 22)
 - `ssh_key`: Override SSH key for a specific node
 - `listen_port`: WireGuard UDP port (defaults to top-level `listen_port`)

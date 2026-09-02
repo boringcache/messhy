@@ -31,14 +31,14 @@ module Messhy
       interface = config.dns_interface
       ttl = config.dns_ttl
       server_nodes = config.dns_server_nodes
-      server_ips = server_nodes.map { |name| config.node_config(name)['private_ip'] }
+      server_ips = server_nodes.map { |name| config.node_config(name)['mesh_ip'] }
 
       records = build_records(domain)
 
       server_nodes.each do |node|
         next if @skip && node == @skip
 
-        server_ip = config.node_config(node)['private_ip']
+        server_ip = config.node_config(node)['mesh_ip']
         conf = build_dnsmasq_conf(domain, interface, server_ip, records, ttl)
 
         if dry_run
@@ -97,7 +97,7 @@ module Messhy
         config.each_node do |name, node_config|
           hostname = "#{sanitize_dns_label(name)}.#{domain}"
           records[hostname] ||= []
-          records[hostname] << node_config['private_ip']
+          records[hostname] << node_config['mesh_ip']
         end
       end
 
@@ -119,7 +119,7 @@ module Messhy
       return '' if target.nil?
 
       node = config.node_config(target.to_s)
-      return node['private_ip'] if node
+      return node['mesh_ip'] if node
 
       target.to_s
     end

@@ -18,8 +18,8 @@ class MeshBuilderTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'node2' => { 'host' => '2.2.2.2', 'private_ip' => '10.8.0.2' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'node2' => { 'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2' }
         }
       }
     }
@@ -53,9 +53,9 @@ class MeshBuilderTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'node2' => { 'host' => '2.2.2.2', 'private_ip' => '10.8.0.2' },
-          'dns-server' => { 'host' => '3.3.3.3', 'private_ip' => '10.8.0.3' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'node2' => { 'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2' },
+          'dns-server' => { 'host' => '3.3.3.3', 'mesh_ip' => '10.8.0.3' }
         },
         'dns' => {
           'enabled' => true,
@@ -89,8 +89,8 @@ class MeshBuilderTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'node2' => { 'host' => '2.2.2.2', 'private_ip' => '10.8.0.2' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'node2' => { 'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2' }
         }
       }
     }
@@ -107,11 +107,39 @@ class MeshBuilderTest < Minitest::Test
     refute_includes wg_config, 'resolvectl'
   end
 
+  def test_build_config_uses_lan_endpoint_for_a_peer_on_the_same_network
+    config_hash = {
+      'test' => {
+        'nodes' => {
+          'node1' => {
+            'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1',
+            'lan' => { 'network' => 'gcp-virginia', 'ip' => '10.100.0.4' }
+          },
+          'node2' => {
+            'host' => '2.2.2.2', 'mesh_ip' => '10.8.0.2',
+            'lan' => { 'network' => 'gcp-virginia', 'ip' => '10.100.0.5' }
+          }
+        }
+      }
+    }
+    config = Messhy::Configuration.new(config_hash, 'test')
+    node_keys = {
+      'node1' => { private_key: 'key1', public_key: 'pub1' },
+      'node2' => { private_key: 'key2', public_key: 'pub2' }
+    }
+    builder = Messhy::MeshBuilder.new(config, node_keys, 'node1-node2' => 'psk123')
+
+    wg_config = builder.build_config_for_node('node1')
+
+    assert_includes wg_config, 'AllowedIPs = 10.8.0.2/32'
+    assert_includes wg_config, 'Endpoint = 10.100.0.5:51820'
+  end
+
   def test_build_config_for_node_raises_for_missing_keys
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' }
         }
       }
     }
@@ -128,8 +156,8 @@ class MeshBuilderTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'dns-server' => { 'host' => '3.3.3.3', 'private_ip' => '10.8.0.3' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'dns-server' => { 'host' => '3.3.3.3', 'mesh_ip' => '10.8.0.3' }
         },
         'dns' => {
           'enabled' => true,
@@ -157,8 +185,8 @@ class MeshBuilderTest < Minitest::Test
     config_hash = {
       'test' => {
         'nodes' => {
-          'node1' => { 'host' => '1.1.1.1', 'private_ip' => '10.8.0.1' },
-          'dns-server' => { 'host' => '3.3.3.3', 'private_ip' => '10.8.0.3' }
+          'node1' => { 'host' => '1.1.1.1', 'mesh_ip' => '10.8.0.1' },
+          'dns-server' => { 'host' => '3.3.3.3', 'mesh_ip' => '10.8.0.3' }
         },
         'dns' => {
           'enabled' => true,

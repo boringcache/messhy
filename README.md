@@ -178,8 +178,11 @@ messhy reconcile --environment=production
 `import-keys` writes the same mode-`0600` local secret files as initial setup
 and never prints key material. `reconcile` validates each candidate config,
 applies active peer changes with `wg syncconf`, and restores the previous config
-if a live sync fails. Set `ssh_known_hosts_file` to a reviewed file when the
-mesh should not depend on the operator's global SSH configuration.
+if a live sync fails. Existing peers outside the source configuration are
+preserved by default so another system can own adjacent mesh members. Pass
+`--prune` only when the source configuration should remove those peers. Set
+`ssh_known_hosts_file` to a reviewed file when the mesh should not depend on
+the operator's global SSH configuration.
 
 ### Status & Monitoring
 

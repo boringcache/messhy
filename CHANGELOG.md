@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-02
+
+### Fixed
+
+- Preserve live peers outside the source-owned mesh during reconciliation.
+  Exact-source pruning is available only through the explicit `--prune` option.
+
 ## [0.9.0] - 2026-09-02
 
 ### Added

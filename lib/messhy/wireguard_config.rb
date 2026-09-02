@@ -36,5 +36,33 @@ module Messhy
 
       self
     end
+
+    def preserve_unmanaged_peers_in(candidate_content, managed_peer_names:)
+      candidate = self.class.parse(candidate_content)
+      candidate_public_keys = candidate.peers.filter_map { |peer| peer['PublicKey'] }
+      managed_peer_names = managed_peer_names.to_set
+
+      unmanaged_peers = peers.reject do |peer|
+        managed_peer_names.include?(peer['Name']) || candidate_public_keys.include?(peer['PublicKey'])
+      end
+
+      return candidate_content if unmanaged_peers.empty?
+
+      [candidate_content.rstrip, *unmanaged_peers.map { |peer| render_peer(peer) }, ''].join("\n\n")
+    end
+
+    private
+
+    def render_peer(peer)
+      lines = []
+      lines << "# Peer: #{peer['Name']}" if peer['Name']
+      lines << '[Peer]'
+      peer.each do |key, value|
+        next if key == 'Name'
+
+        lines << "#{key} = #{value}"
+      end
+      lines.join("\n")
+    end
   end
 end

@@ -28,9 +28,10 @@ module Messhy
 
     desc 'reconcile', 'Apply mesh changes without restarting active WireGuard interfaces'
     option :dry_run, type: :boolean, default: false
+    option :prune, type: :boolean, default: false, desc: 'Remove live peers absent from the source configuration'
     def reconcile
       config = load_config
-      Installer.new(config, dry_run: options[:dry_run]).reconcile
+      Installer.new(config, dry_run: options[:dry_run], prune: options[:prune]).reconcile
     rescue SSHKit::Runner::ExecuteError => e
       handle_ssh_error(e, config)
     end

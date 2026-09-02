@@ -9,11 +9,12 @@ require 'base64'
 module Messhy
   # rubocop:disable Metrics/ClassLength
   class Installer
-    attr_reader :config, :dry_run, :ssh_executor
+    attr_reader :config, :dry_run, :prune, :ssh_executor
 
-    def initialize(config, dry_run: false, ssh_executor: SSHExecutor.new(config))
+    def initialize(config, dry_run: false, prune: false, ssh_executor: SSHExecutor.new(config))
       @config = config
       @dry_run = dry_run
+      @prune = prune
       @ssh_executor = ssh_executor
       @node_keys = load_existing_keys
       @psk_map = load_existing_psks
@@ -52,6 +53,7 @@ module Messhy
         if dry_run
           puts "  [DRY RUN] Would reconcile #{node_name}"
         else
+          config_content = preserve_unmanaged_peers(node_name, config_content) unless prune
           ssh_executor.reconcile_config(node_name, config_content)
           puts "  ✓ Reconciled #{node_name}"
         end
@@ -178,6 +180,12 @@ module Messhy
     end
 
     private
+
+    def preserve_unmanaged_peers(node_name, config_content)
+      current = WireguardConfig.parse(ssh_executor.read_wireguard_config(node_name))
+      managed_peer_names = config.node_names - [node_name]
+      current.preserve_unmanaged_peers_in(config_content, managed_peer_names: managed_peer_names)
+    end
 
     def validate_imported_address!(node_name, node_config, snapshot)
       address = snapshot.interface['Address'].to_s.split('/').first

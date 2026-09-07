@@ -10,6 +10,6 @@ group :development, :test do
   gem 'bundler-audit', '~> 0.9', require: false
   gem 'minitest', '~> 6.0'
   gem 'rake', '~> 13.4'
-  gem 'rubocop', '~> 1.89', require: false
+  gem 'rubocop', '~> 1.90', require: false
   gem 'simplecov', '~> 1.1', require: false
 end

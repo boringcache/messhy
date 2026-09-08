@@ -12,7 +12,7 @@ module Messhy
       @psk_map = psk_map
     end
 
-    # rubocop:disable Metrics/AbcSize
+    # rubocop:disable-next Metrics/AbcSize
     def build_config_for_node(node_name)
       node_config = config.node_config(node_name)
       raise Error, "Node not found: #{node_name}" unless node_config
@@ -73,7 +73,6 @@ module Messhy
       binding_context = binding
       template.result(binding_context)
     end
-    # rubocop:enable Metrics/AbcSize
 
     def build_all_configs
       configs = {}

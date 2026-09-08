@@ -7,7 +7,7 @@ require 'digest'
 require 'base64'
 
 module Messhy
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class Installer
     attr_reader :config, :dry_run, :prune, :ssh_executor
 
@@ -422,5 +422,4 @@ module Messhy
       base[0, 44]
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end

@@ -8,7 +8,7 @@ module Messhy
     DEFAULT_TIMEOUT = 5
     DEFAULT_KEY_TYPES = %w[ed25519 ecdsa rsa].freeze
 
-    # rubocop:disable Metrics/ParameterLists
+    # rubocop:disable-next Metrics/ParameterLists
     def initialize(config,
                    known_hosts_path: File.expand_path('~/.ssh/known_hosts'),
                    timeout: DEFAULT_TIMEOUT,
@@ -22,7 +22,6 @@ module Messhy
       @hash_hosts = hash_hosts
       @replace_existing = replace_existing
     end
-    # rubocop:enable Metrics/ParameterLists
 
     def trust_all_hosts
       ensure_ssh_keyscan!

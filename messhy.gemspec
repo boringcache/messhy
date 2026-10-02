@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 4.0.0'
 
-  spec.metadata['source_code_uri'] = 'https://github.com/boringcache/messhy'
+  spec.metadata['source_code_uri'] = "https://github.com/boringcache/messhy/tree/v#{spec.version}"
   spec.metadata['documentation_uri'] = 'https://github.com/boringcache/messhy/blob/main/README.md'
   spec.metadata['changelog_uri'] = 'https://github.com/boringcache/messhy/blob/main/CHANGELOG.md'
   spec.metadata['bug_tracker_uri'] = 'https://github.com/boringcache/messhy/issues'

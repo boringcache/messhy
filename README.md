@@ -103,6 +103,13 @@ Apply DNS without touching WireGuard:
 messhy dns --environment=production
 ```
 
+Use `messhy reconcile --environment=production` to update active peers without
+restarting their WireGuard interfaces. Reconciliation uploads configuration
+inside a private temporary directory and passes a separate owner-only file to
+`wg syncconf`. Both temporary files are removed after a successful update or
+a failed update with rollback. The installed and previous configurations remain
+root-owned with mode `0600`.
+
 ## Secret Management
 
 `messhy setup` stores generated WireGuard key pairs inside `.secrets/wireguard/*.yml` with `0600` permissions. Each node gets its own YAML file (`.secrets/wireguard/<node>.yml`) and all peer pre‑shared keys live in `.secrets/wireguard/psks.yml`. The directory is gitignored by default, and the Rails generator ensures the ignore rules are present in your application. After provisioning, copy the YAML files into 1Password (or another vault) and remove them from disk if you do not want long‑lived local copies.

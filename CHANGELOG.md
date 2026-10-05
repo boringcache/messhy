@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-10-05
+
+### Fixed
+
+- Keep temporary WireGuard configurations private during reconciliation and
+  remove them after successful updates or failed updates with rollback.
+
 ## [0.9.2] - 2026-10-02
 
 ### Changed

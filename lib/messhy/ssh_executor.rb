@@ -127,11 +127,22 @@ module Messhy
     end
 
     def reconcile_config(node_name, config_content)
-      temp_file = '/tmp/messhy-wg0.conf'
-      script = reconcile_script(temp_file)
+      executor = self
       execute_on_node(node_name) do
-        upload! StringIO.new(config_content), temp_file
-        execute :sudo, :bash, '-lc', Shellwords.escape(script)
+        temp_directory = capture(:mktemp, '-d', '/tmp/messhy-reconcile.XXXXXXXXXX').strip
+        unless temp_directory.match?(%r{\A/tmp/messhy-reconcile\.[A-Za-z0-9]+\z})
+          raise Error, 'Could not create a private WireGuard upload directory'
+        end
+
+        temp_file = File.join(temp_directory, 'wg0.conf')
+        begin
+          upload! StringIO.new(config_content), temp_file
+          script = executor.send(:reconcile_script, temp_file)
+          execute :sudo, :bash, '-lc', Shellwords.escape(script)
+        ensure
+          execute :rm, '-f', temp_file
+          execute :rmdir, temp_directory
+        end
       end
     end
 
@@ -397,9 +408,11 @@ module Messhy
         target=/etc/wireguard/wg0.conf
         candidate=/etc/wireguard/wg0.next.conf
         previous=/etc/wireguard/wg0.conf.previous
-        stripped=/tmp/messhy-wg0.stripped
+        stripped=$(mktemp /tmp/messhy-wg0.XXXXXXXXXX)
+        trap 'rm -f "$stripped"' EXIT
+        trap 'exit 1' HUP INT TERM
 
-        install -o root -g root -m 600 #{temp_file} "$candidate"
+        install -o root -g root -m 600 #{Shellwords.escape(temp_file)} "$candidate"
         wg-quick strip "$candidate" > "$stripped"
 
         if systemctl is-active --quiet wg-quick@wg0; then
@@ -421,7 +434,6 @@ module Messhy
           fi
         fi
 
-        rm -f "$stripped" #{temp_file}
       SCRIPT
     end
   end

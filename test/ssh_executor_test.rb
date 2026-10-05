@@ -1,5 +1,9 @@
 require 'test_helper'
 require 'tempfile'
+require 'tmpdir'
+require 'fileutils'
+require 'open3'
+require 'json'
 
 class SSHExecutorTest < Minitest::Test
   def test_target_can_connect_through_a_declared_jump_host
@@ -81,5 +85,106 @@ class SSHExecutorTest < Minitest::Test
     assert_includes script, 'cp -p "$previous" "$target"'
     assert_includes script, 'systemctl start wg-quick@wg0'
     refute_includes script, 'systemctl restart wg-quick@wg0'
+  end
+
+  def test_reconcile_private_key_file_is_private_and_removed_after_success_or_rollback
+    [false, true].each do |fail_sync|
+      Dir.mktmpdir('mesh-permissions') do |directory|
+        FileUtils.mkdir_p("#{directory}/wireguard")
+        File.write("#{directory}/wireguard/wg0.conf", "previous configuration\n")
+        source = "#{directory}/upload"
+        File.write(source, "PrivateKey = test-fixture-only\n")
+        stub_reconcile_commands(directory)
+        config = Messhy::Configuration.new({ 'test' => { 'nodes' => {} } }, 'test')
+        script = Messhy::SSHExecutor.new(config).send(:reconcile_script, source)
+        script = script.gsub('/etc/wireguard', "#{directory}/wireguard")
+                       .gsub('/tmp/messhy-wg0', "#{directory}/stripped")
+        observations = "#{directory}/observations"
+        output, status = Open3.capture2e({
+                                           'PATH' => "#{directory}:#{ENV.fetch('PATH')}",
+                                           'MESH_TEST_RUBY' => RbConfig.ruby, 'MESH_TEST_OBSERVATIONS' => observations,
+                                           'MESH_TEST_FAIL' => fail_sync.to_s
+                                         }, 'bash', '-c', "umask 022\n#{script}")
+        assert_equal !fail_sync, status.success?, output
+        rows = File.readlines(observations).map { |line| JSON.parse(line) }
+        assert_equal(fail_sync ? 2 : 1, rows.size)
+        rows.each do |row|
+          assert_equal 0o600, row.fetch('mode')
+          refute_path_exists row.fetch('path')
+        end
+        expected = fail_sync ? "previous configuration\n" : "PrivateKey = test-fixture-only\n"
+        assert_equal expected, File.read("#{directory}/wireguard/wg0.conf")
+      end
+    end
+  end
+
+  def test_reconcile_upload_is_private_and_removed_when_remote_apply_fails
+    backend = FailingReconcileBackend.new
+    config = Messhy::Configuration.new({ 'test' => { 'nodes' => {} } }, 'test')
+    executor = Messhy::SSHExecutor.new(config)
+    executor.define_singleton_method(:execute_on_node) { |_node, &block| backend.instance_eval(&block) }
+
+    error = assert_raises(RuntimeError) { executor.reconcile_config('fixture', 'private fixture') }
+    assert_equal 'remote apply failed', error.message
+    assert_equal 1, backend.uploaded.size
+    assert_equal 0o700, backend.uploaded.first.fetch(:directory_mode)
+    refute_path_exists backend.uploaded.first.fetch(:path)
+    backend.directories.each { |path| refute_path_exists path }
+  ensure
+    backend&.directories&.each { |path| FileUtils.remove_entry(path) if File.directory?(path) }
+  end
+
+  private
+
+  def stub_reconcile_commands(directory)
+    programs = {
+      'install' => "#!/bin/sh\nshift 4\nexec /usr/bin/install \"$@\"\n",
+      'wg-quick' => "#!/bin/sh\ncat \"$2\"\n",
+      'systemctl' => "#!/bin/sh\nexit 0\n",
+      'wg' => <<~SH
+        #!/bin/sh
+        exec "$MESH_TEST_RUBY" -rjson -e '
+          observations = ENV.fetch("MESH_TEST_OBSERVATIONS")
+          first = !File.exist?(observations)
+          File.open(observations, "a") do |file|
+            file.puts JSON.generate(path: ARGV[2], mode: File.stat(ARGV[2]).mode & 0777)
+          end
+          exit(ENV["MESH_TEST_FAIL"] == "true" && first ? 1 : 0)
+        ' "$@"
+      SH
+    }
+    programs.each do |name, content|
+      File.write("#{directory}/#{name}", content)
+      File.chmod(0o755, "#{directory}/#{name}")
+    end
+  end
+
+  class FailingReconcileBackend
+    attr_reader :directories, :uploaded
+
+    def initialize
+      @directories = []
+      @uploaded = []
+    end
+
+    def capture(*arguments)
+      path, status = Open3.capture2(*arguments.map(&:to_s))
+      raise 'mktemp failed' unless status.success?
+
+      directories << path.strip
+      path
+    end
+
+    def upload!(input, path)
+      uploaded << { path: path, directory_mode: File.stat(File.dirname(path)).mode & 0o777 }
+      File.write(path, input.read)
+    end
+
+    def execute(*arguments)
+      raise 'remote apply failed' if arguments.first == :sudo
+
+      _output, status = Open3.capture2e(*arguments.map(&:to_s))
+      raise 'cleanup failed' unless status.success?
+    end
   end
 end

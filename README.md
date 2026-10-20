@@ -1,10 +1,9 @@
 # messhy
 
-> WireGuard VPN mesh for secure private networking. Simple, fast, zero-config.
+A Ruby gem that configures a WireGuard mesh across hosts you control. Every node
+connects directly to every other node.
 
-A Ruby gem that sets up a full WireGuard VPN mesh across any VMs. Every node connects directly to every other node, creating a secure private network.
-
-## Why messhy?
+## How it works
 
 Messhy generates WireGuard keys and peer configuration, installs it over SSH,
 and gives each node a stable private address. It is intended for small fleets
